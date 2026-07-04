@@ -2,11 +2,11 @@ import time
 import threading
 import win32con
 import win32gui
-import desktop_finder  # 引入上面的寻找库
+import desktop_finder
 
 
-def overlay(window_obj, mode="below_icon"):  # 可以默认或者在 main 里控制传参
-    time.sleep(1)  # 等待加载完成
+def overlay(window_obj, mode="full"):
+    time.sleep(1)  # 等待 webview 内部 Chrome 内核窗口创建完成
 
     def _detach():
         # === 1. 严格参考你的方法获取主窗口 HWND ===
@@ -45,13 +45,11 @@ def overlay(window_obj, mode="below_icon"):  # 可以默认或者在 main 里控
         rect = win32gui.GetWindowRect(main_h)
         x, y, w, h = rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]
 
-        # === 4. 纯粹从寻找库拿句柄，web_overlay 不包含任何多余逻辑 ===
-        if mode == "full":
-            desktop_h = desktop_finder.get_mode_full_cover()
-        elif mode == "wallpaper":
+        # === 4. 调用对应的模式句柄 ===
+        if mode == "wallpaper":
             desktop_h = desktop_finder.get_mode_wallpaper_only()
         else:
-            desktop_h = desktop_finder.get_mode_below_icons()
+            desktop_h = desktop_finder.get_mode_full_cover()
 
         # === 5. 执行挂载 ===
         style = win32gui.GetWindowLong(chrome_h, win32con.GWL_STYLE)

@@ -2,8 +2,8 @@ import win32con
 import win32gui
 
 
-def _get_progman_and_trigger():
-    """找到 Program Manager 并触发 0x052C 确保层级处于激活状态"""
+def _trigger_workerw():
+    """向大总管发送分层信号，确保拆分出壁纸层"""
     progman = win32gui.FindWindow("Progman", "Program Manager")
     win32gui.SendMessageTimeout(
         progman, 0x052C, 0, 0, win32con.SMTO_NORMAL, 1000)
@@ -11,30 +11,18 @@ def _get_progman_and_trigger():
 
 
 def get_mode_full_cover():
-    """模式1：全覆盖（直接挂在大总管 Progman 上，遮挡所有人）"""
-    return _get_progman_and_trigger()
-
-
-def get_mode_below_icons():
-    """模式2：图标下方（深度挂载到 FolderView / SysListView32 内部）"""
-    progman = _get_progman_and_trigger()
-
-    # 第一层：依图寻找大外壳 SHELLDLL_DefView
-    shell_def = win32gui.FindWindowEx(progman, 0, "SHELLDLL_DefView", None)
-
-    # 第二层：精准挖出你要的名称为 "FolderView"，类名为 "SysListView32" 的窗口
-    folder_view = win32gui.FindWindowEx(
-        shell_def, 0, "SysListView32", "FolderView")
-
-    # 如果找到了，直接把这个图标层作为网页的父级返回
-    return folder_view if folder_view else shell_def
+    """模式1：全覆盖（挂载在大总管 Progman 上，网页可完美交互）"""
+    return _trigger_workerw()
 
 
 def get_mode_wallpaper_only():
-    """模式3：纯壁纸（挂载到与 SHELLDLL_DefView 同级的隐藏 WorkerW 上）"""
-    progman = _get_progman_and_trigger()
+    """模式2：当成壁纸（精准匹配你 Spy++ 图中的 Window WorkerW）"""
+    progman = _trigger_workerw()
 
-    # 按照图中所示，寻找 Progman 下面那个类名为 WorkerW 且标题为空的窗口
+    # 【核心修正】：不要再去 Enum 全局窗口盲猜了！
+    # 直接根据你的 Spy++ 图，去 Progman (Program Manager) 内部寻找类名为 "WorkerW" 的直接子窗口。
+    # 并且传入标题为 "" (空字符串)，这能 100% 精准咬住你图里那个 002D083A 的 WorkerW。
     worker_w = win32gui.FindWindowEx(progman, 0, "WorkerW", "")
 
+    # 如果系统尚未彻底生成此 WorkerW，则用大总管 Progman 兜底，确保网页绝对不会隐形
     return worker_w if worker_w else progman
