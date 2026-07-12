@@ -9,3 +9,7 @@
 ``` text
 寻找桌面hwnd -> 寻找pywebview的hwnd -> 挂载pywebview到桌面hwnd -> web显示桌面GUI并与python交互
 ```
+
+## 不足
+
+作者的web技能不足，不会写后端，你们可以自己写个能用的桌面

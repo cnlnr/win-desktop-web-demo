@@ -85,13 +85,13 @@ def mount_logic(window_obj):
 
 if __name__ == '__main__':
     # 在这里填入你需要全屏展示的 Web 网址
-    TARGET_URL = 'https://html5test.co'
+    TARGET_URL = 'desktop_web/index.html'
 
     window = webview.create_window(
         'DesktopWidget',
         url=TARGET_URL,
         transparent=True,       # 允许网页透明背景
-        fullscreen=True         # 全屏启动
+        maximized=True         # 全屏启动
     )
 
     # 异步执行全屏挂载

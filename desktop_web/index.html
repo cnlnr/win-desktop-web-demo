@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Desktop Engine v12.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* 强制禁止系统默认的选择和拖拽蓝色高亮 */
+        * {
+            user-select: none;
+            -webkit-user-drag: none;
+            outline: none;
+        }
+
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 霓虹外发光选框 */
+        #selection-box {
+            position: absolute;
+            background-color: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.6);
+            border-radius: 4px;
+            pointer-events: none;
+            display: none;
+            z-index: 9999;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+
+        /* 高仿 Windows 11 现代全透明毛玻璃右键菜单面板 */
+        #context-menu {
+            position: fixed;
+            display: none;
+            z-index: 100000;
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0px rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="w-screen h-screen bg-transparent overflow-hidden font-sans text-white antialiased relative cursor-default">
+
+    <canvas id="effects-canvas" class="absolute inset-0 w-full h-full pointer-events-none -z-10"></canvas>
+
+    <div
+        class="absolute top-6 right-6 bg-zinc-950/30 border border-cyan-500/15 backdrop-blur-md rounded-2xl px-6 py-4 flex flex-col items-end shadow-[0_12px_40px_rgba(6,182,212,0.12)] pointer-events-none z-50 w-64">
+        <div id="clock-time"
+            class="text-4xl font-light font-mono text-cyan-400 tracking-wider drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+            00:00:00</div>
+        <div id="clock-date" class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mt-1">2026 / 01 / 01
+        </div>
+        <div class="w-full h-px bg-white/5 my-3"></div>
+        <div class="w-full font-mono text-[10px] space-y-2 text-zinc-300">
+            <div class="flex justify-between items-center"><span>CPU MATRIX</span><span id="cpu-val"
+                    class="text-cyan-400">23%</span></div>
+            <div class="w-full bg-zinc-900 rounded-full h-1 overflow-hidden border border-white/5">
+                <div id="cpu-bar" class="bg-cyan-400 h-full transition-all duration-500" style="width: 23%"></div>
+            </div>
+            <div class="flex justify-between items-center"><span>RAM STATIC</span><span id="ram-val"
+                    class="text-emerald-400">42%</span></div>
+            <div class="w-full bg-zinc-900 rounded-full h-1 overflow-hidden border border-white/5">
+                <div id="ram-bar" class="bg-emerald-400 h-full transition-all duration-500" style="width: 42%"></div>
+            </div>
+            <div class="flex justify-between pt-0.5 text-zinc-500 text-[9px]"><span>▲ UP: 4.2 MB/s</span><span>▼ DOWN:
+                    18.7 MB/s</span></div>
+        </div>
+    </div>
+
+    <div id="desktop-grid"
+        class="absolute top-6 left-6 right-0 bottom-0 pr-80 grid grid-flow-col grid-rows-[repeat(auto-fill,106px)] grid-cols-[repeat(auto-fill,90px)] gap-x-2 gap-y-3 justify-start content-start">
+
+        <div id="selection-box"></div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="工作台项目">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(234,179,8,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <defs>
+                        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#FBBF24" />
+                            <stop offset="100%" stop-color="#D97706" />
+                        </linearGradient>
+                    </defs>
+                    <path
+                        d="M4 10C4 8.89 4.89 8 6 8H18L24 14H42C43.1 14 44 14.89 44 16V40C44 41.1 43.1 42 42 42H6C4.89 42 4 41.1 4 40V10Z"
+                        fill="url(#g1)" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">工作台项目</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="nwinfo_cli.exe">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(6,182,212,0.3)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <defs>
+                        <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#22D3EE" />
+                            <stop offset="100%" stop-color="#0891B2" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="4" y="6" width="40" height="36" rx="4" fill="url(#g2)" />
+                    <path d="M12 18L18 24L12 30M22 30H32" stroke="white" stroke-width="3" stroke-linecap="round" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">nwinfo_cli</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="main.py">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(59,130,246,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <defs>
+                        <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#60A5FA" />
+                            <stop offset="100%" stop-color="#2563EB" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M6 4C6 2.89 6.89 2 8 2H32L42 12V44C42 45.1 41.1 46 40 46H8C6.89 46 6 45.1 6 44V4Z"
+                        fill="url(#g3)" />
+                    <path d="M14 22H34M14 30H26" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">main.py</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="yjxb_core.dll">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(168,85,247,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <defs>
+                        <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#A78BFA" />
+                            <stop offset="100%" stop-color="#6D28D9" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="6" y="6" width="36" height="36" rx="6" fill="url(#g4)" />
+                    <path d="M18 16L30 32M30 16L18 32" stroke="white" stroke-width="4" stroke-linecap="round"
+                        opacity="0.8" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">yjxb_core.dll</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="config.json">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(139,92,246,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <path d="M6 4C6 2.89 6.89 2 8 2H32L42 12V44C42 45.1 41.1 46 40 46H8C6.89 46 6 45.1 6 44V4Z"
+                        fill="#8B5CF6" />
+                    <circle cx="24" cy="28" r="5" stroke="white" stroke-width="3" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">config.json</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="battery_report">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(16,185,129,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <rect x="10" y="6" width="28" height="36" rx="4" fill="#10B981" />
+                    <rect x="20" y="2" width="8" height="4" rx="1" fill="#10B981" />
+                    <path d="M18 24H30M24 18V30" stroke="white" stroke-width="3" stroke-linecap="round" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">battery_report</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="ScreenTest.ps1">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(30,41,59,0.3)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <rect x="4" y="4" width="40" height="40" rx="4" fill="#1E293B" stroke="#38BDF8" stroke-width="2" />
+                    <path d="M12 14H36M12 24H28M12 34H32" stroke="#38BDF8" stroke-width="3" stroke-linecap="round" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">ScreenTest.ps1</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="Dev_Env.lnk">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(59,130,246,0.3)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <rect x="6" y="6" width="36" height="36" rx="8" fill="#2563EB" />
+                    <path d="M14 16L22 24L14 32M24 32H34" stroke="white" stroke-width="4" stroke-linecap="round" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">Dev_Env.lnk</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="SysUtils.cpp">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(236,72,153,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <path d="M6 4C6 2.89 6.89 2 8 2H32L42 12V44C42 45.1 41.1 46 40 46H8C6.89 46 6 45.1 6 44V4Z"
+                        fill="#EC4899" />
+                    <path d="M16 20H32M16 28H24" stroke="white" stroke-width="3" stroke-linecap="round" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">SysUtils.cpp</span>
+        </div>
+
+        <div class="icon-item flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 w-[90px] h-[106px] hover:bg-white/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group"
+            data-name="HardwareSuite">
+            <div class="filter drop-shadow-[0_8px_12px_rgba(245,158,11,0.25)]">
+                <svg class="w-11 h-11 group-hover:scale-105 transition-transform duration-200" viewBox="0 0 48 48"
+                    fill="none">
+                    <path
+                        d="M4 10C4 8.89 4.89 8 6 8H18L24 14H42C43.1 14 44 14.89 44 16V40C44 41.1 43.1 42 42 42H6C4.89 42 4 41.1 4 40V10Z"
+                        fill="#F59E0B" />
+                </svg>
+            </div>
+            <span
+                class="text-[11px] font-normal mt-1.5 text-center break-all line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] px-0.5 tracking-tight">HardwareSuite</span>
+        </div>
+
+        <div
+            class="absolute bottom-6 left-0 bg-zinc-900/60 border border-white/10 backdrop-blur-md rounded-2xl px-5 py-3 flex flex-col space-y-1 shadow-2xl pointer-events-auto z-50">
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(6,182,212,1)]">
+                    </div>
+                    <span class="text-xs font-bold text-zinc-200 tracking-widest">STORM ENGINE V12.1</span>
+                </div>
+                <div class="text-xs text-zinc-400 border-l border-white/10 pl-4 tracking-tight font-mono">
+                    <span>GRID_ALIGN // ALIGNED_TOP</span>
+                </div>
+            </div>
+            <div id="live-logs" class="text-[9px] font-mono text-zinc-500 pt-0.5 transition-opacity duration-300">[OK]
+                SYNCING DISPLAY MATRIX...</div>
+        </div>
+    </div>
+
+    <div id="context-menu" class="w-64 rounded-xl p-1 text-[12.5px] text-zinc-200 font-normal">
+        <div id="menu-items-container" class="flex flex-col space-y-0.5"></div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('desktop-grid');
+        const box = document.getElementById('selection-box');
+        const menu = document.getElementById('context-menu');
+        const menuContainer = document.getElementById('menu-items-container');
+        const icons = document.querySelectorAll('.icon-item');
+
+        let isDrawing = false;
+        let startX = 0, startY = 0;
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0) menu.style.display = 'none';
+
+            if (e.button === 2) {
+                e.preventDefault();
+                const targetIcon = e.target.closest('.icon-item');
+                let menuHtml = '';
+                const itemClass = "flex items-center justify-between w-full px-3 py-1.5 rounded-md text-left opacity-90 text-zinc-200";
+
+                if (targetIcon) {
+                    icons.forEach(i => i.classList.remove('bg-white/15', 'ring-2', 'ring-cyan-500/50'));
+                    targetIcon.classList.add('bg-white/15', 'ring-2', 'ring-cyan-500/50');
+
+                    menuHtml = `
+                        <div class="flex items-center justify-around py-1.5 px-1 mb-1 border-b border-white/5 text-zinc-400">
+                            <span class="p-1 hover:bg-white/10 rounded">✂</span><span class="p-1 hover:bg-white/10 rounded">📋</span><span class="p-1 hover:bg-white/10 rounded">🖎</span><span class="p-1 hover:bg-white/10 rounded text-red-400">🗑</span>
+                        </div>
+                        <div class="${itemClass} text-cyan-400 font-medium bg-cyan-500/5"><span>🗀 打开</span><span class="text-[10px] text-zinc-500 font-mono">Enter</span></div>
+                        <div class="${itemClass}"><span>⚙ 以管理员身份运行</span></div>
+                        <div class="h-px bg-white/10 my-1"></div>
+                        <div class="${itemClass}"><span>🛈 属性</span><span class="text-[10px] text-zinc-500 font-mono">Alt+Enter</span></div>
+                    `;
+                } else {
+                    menuHtml = `
+                        <div class="${itemClass}"><span>🗉 查看 (V)</span><span class="text-zinc-500 text-[10px]">❯</span></div>
+                        <div class="${itemClass}"><span>☵ 排序方式 (O)</span><span class="text-zinc-500 text-[10px]">❯</span></div>
+                        <div class="${itemClass}"><span>⟳ 刷新 (E)</span><span class="text-[10px] text-zinc-500 font-mono">F5</span></div>
+                        <div class="h-px bg-white/10 my-1"></div>
+                        <div class="${itemClass}"><span>🗎 新建 (W)</span><span class="text-zinc-500 text-[10px]">❯</span></div>
+                        <div class="h-px bg-white/10 my-1"></div>
+                        <div class="${itemClass}"><span>🖳 显示设置 (D)</span></div>
+                        <div class="${itemClass}"><span>🎨 个性化 (R)</span></div>
+                    `;
+                }
+
+                menuContainer.innerHTML = menuHtml;
+                menu.style.left = `${e.clientX}px`;
+                menu.style.top = `${e.clientY}px`;
+                menu.style.display = 'block';
+                return;
+            }
+
+            if (e.button === 0) {
+                if (e.target.closest('.icon-item')) return;
+                isDrawing = true;
+                startX = e.clientX; startY = e.clientY;
+                box.style.left = `${startX}px`; box.style.top = `${startY}px`;
+                box.style.width = '0px'; box.style.height = '0px'; box.style.display = 'block';
+                if (!e.ctrlKey) icons.forEach(icon => icon.classList.remove('bg-white/15', 'ring-2', 'ring-cyan-500/50'));
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const currentX = e.clientX, currentY = e.clientY;
+            const width = Math.abs(currentX - startX), height = Math.abs(currentY - startY);
+            const left = Math.min(currentX, startX), top = Math.min(currentY, startY);
+
+            box.style.left = `${left}px`; box.style.top = `${top}px`;
+            box.style.width = `${width}px`; box.style.height = `${height}px`;
+
+            const boxRect = { left, top, right: left + width, bottom: top + height };
+            icons.forEach(icon => {
+                const iconRect = icon.getBoundingClientRect();
+                const isOverlap = !(iconRect.right < boxRect.left || iconRect.left > boxRect.right || iconRect.bottom < boxRect.top || iconRect.top > boxRect.bottom);
+                if (isOverlap) icon.classList.add('bg-white/15', 'ring-2', 'ring-cyan-500/50');
+                else if (!e.ctrlKey) icon.classList.remove('bg-white/15', 'ring-2', 'ring-cyan-500/50');
+            });
+        });
+
+        window.addEventListener('mouseup', () => { isDrawing = false; box.style.display = 'none'; });
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-time').textContent = now.toTimeString().split(' ')[0];
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            document.getElementById('clock-date').textContent = `${now.getFullYear()} / ${String(now.getMonth() + 1).padStart(2, '0')} / ${String(now.getDate()).padStart(2, '0')}   ${days[now.getDay()]}`;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        setInterval(() => {
+            const rCpu = Math.floor(Math.random() * 25) + 12;
+            const rRam = Math.floor(Math.random() * 5) + 40;
+            document.getElementById('cpu-val').textContent = rCpu + '%';
+            document.getElementById('cpu-bar').style.width = rCpu + '%';
+            document.getElementById('ram-val').textContent = rRam + '%';
+            document.getElementById('ram-bar').style.width = rRam + '%';
+        }, 2500);
+
+        const logLines = ["[OK] INITIALIZING CORE ENGINE...", "[INFO] SYNCING DISPLAY MATRIX...", "[OK] HARDWARE REGISTER READ: FAST"];
+        let logIndex = 0;
+        setInterval(() => {
+            const logEl = document.getElementById('live-logs');
+            logEl.style.opacity = 0;
+            setTimeout(() => {
+                logIndex = (logIndex + 1) % logLines.length;
+                logEl.textContent = logLines[logIndex];
+                logEl.style.opacity = 1;
+            }, 300);
+        }, 4000);
+
+        const canvas = document.getElementById('effects-canvas');
+        const ctx = canvas.getContext('2d');
+        let rainDrops = [], backgroundParticles = [];
+        const maxRain = 150, maxParticles = 35;
+
+        function initCanvasSize() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            rainDrops = []; backgroundParticles = [];
+            for (let i = 0; i < maxRain; i++) {
+                rainDrops.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, length: Math.random() * 25 + 18, speed: Math.random() * 10 + 20, weight: Math.random() * 1.2 + 0.5 });
+            }
+            for (let i = 0; i < maxParticles; i++) {
+                backgroundParticles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: Math.random() * 2 + 1, alpha: Math.random() * 0.4 + 0.1, speed: Math.random() * 0.3 + 0.1 });
+            }
+        }
+
+        function renderLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.015)"; ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.height; i += 6) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+            for (let i = 0; i < maxParticles; i++) {
+                let p = backgroundParticles[i];
+                ctx.fillStyle = `rgba(6, 182, 212, ${p.alpha})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+                p.y -= p.speed; if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+            }
+            ctx.strokeStyle = "rgba(174, 219, 255, 0.28)"; ctx.lineCap = "round";
+            for (let i = 0; i < maxRain; i++) {
+                const r = rainDrops[i]; ctx.lineWidth = r.weight;
+                ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x - 0.5, r.y + r.length); ctx.stroke();
+                r.y += r.speed; if (r.y > canvas.height) { r.y = -30; r.x = Math.random() * canvas.width; }
+            }
+            requestAnimationFrame(renderLoop);
+        }
+
+        initCanvasSize(); window.addEventListener('resize', initCanvasSize); renderLoop();
+    </script>
+</body>
+
+</html>
