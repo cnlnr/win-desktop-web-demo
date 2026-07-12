@@ -2,6 +2,8 @@
 
 把Windows的GUI桌面换成 Web
 
+使用前请右键桌面->查看->隐藏桌面图标后安装依赖运行app.py
+
 壁纸引擎出现自动消失的问题，我无法修复，已经去掉这个功能 <https://gitee.com/LZY4/win-desktop-web-demo/commit/a3d5e9728ca33e3be4e3ee9cb8c8aad3c9be70cc>
 
 ## 原理流程
